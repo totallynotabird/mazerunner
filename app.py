@@ -10,6 +10,7 @@ YELLOW = (255, 255, 0)
 CYAN = (0, 255, 255)
 PURPLE = (255, 0, 255)
 
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -37,29 +38,28 @@ class Player(pygame.sprite.Sprite):
         # collision detection horizontal
         self.rect.x += self.change_x
 
-        block_list_hit = pygame.sprite.spritecollide(self,walls,False)
+        block_list_hit = pygame.sprite.spritecollide(self, walls, False)
         for block in block_list_hit:
             if self.change_x > 0:
                 self.rect.right = block.rect.left
             else:
-                self.rect.left = block.rect.right        
-        
+                self.rect.left = block.rect.right
+
         # collision detection vertical
         self.rect.y += self.change_y
 
-        block_list_hit = pygame.sprite.spritecollide(self,walls,False)
-        for block in block_list_hit:    
+        block_list_hit = pygame.sprite.spritecollide(self, walls, False)
+        for block in block_list_hit:
             if self.change_y > 0:
                 self.rect.bottom = block.rect.top
             else:
                 self.rect.top = block.rect.bottom
 
         # collision detection enemies
-        block_list_hit = pygame.sprite.spritecollide(self,enemies,False)
+        block_list_hit = pygame.sprite.spritecollide(self, enemies, False)
 
         for enemy in block_list_hit:
             self.hitEnemy()
-
 
     def hitEnemy(self):
         time.sleep(1)
@@ -125,7 +125,7 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class Wall(pygame.sprite.Sprite):
-    def __init__(self ,x, y, width, height, color):
+    def __init__(self, x, y, width, height, color):
         super().__init__()
 
         self.image = pygame.Surface([width, height])
@@ -135,16 +135,19 @@ class Wall(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+
 class Treasure(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, color) -> None:
         super().__init__()
 
-        self.image = pygame.Surface([width,height])
+        self.image = pygame.Surface([width, height])
         self.image.fill(color)
 
         self.rect = self.image.get_rect()
         self.rect.x = x
-        self.rect.y = y  
+        self.rect.y = y
+
+
 class Room(object):
     def __init__(self):
         self.wall_list = pygame.sprite.Group()
@@ -154,7 +157,7 @@ class Room(object):
     def createWall(self, x, y, width, height, color):
         wall = Wall(x, y, width, height, color)
         self.wall_list.add(wall)
-    
+
     def createTreasure(self, x, y, width, height, color):
         treasure = Treasure(x, y, width, height, color)
         self.treasure_list.add(treasure)
@@ -163,78 +166,83 @@ class Room(object):
         enemy = Enemy(x_start, y_start, x_stop, y_stop, speed, color)
         self.enemy_list.add(enemy)
 
+
 class Room0(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 600, GREEN) # left wall
-        self.createWall(780, 0, 20, 250, GREEN) # right wall
-        self.createWall(780, 350, 20, 250, GREEN) # right wall 2
-        self.createWall(20, 0, 760, 20, GREEN) # top wall
-        self.createWall(20, 580, 330, 20, GREEN) # bottom wall 1
-        self.createWall(450, 580, 330, 20, GREEN) # bottom wall 2
+        self.createWall(0, 0, 20, 600, GREEN)  # left wall
+        self.createWall(780, 0, 20, 250, GREEN)  # right wall
+        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
+        self.createWall(20, 0, 760, 20, GREEN)  # top wall
+        self.createWall(20, 580, 330, 20, GREEN)  # bottom wall 1
+        self.createWall(450, 580, 330, 20, GREEN)  # bottom wall 2
 
         self.createEnemy(100, 300, 700, 300, 5, RED)
         self.createEnemy(400, 100, 400, 500, 5, RED)
+
 
 class Room1(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 250, WHITE) # left wall 1
-        self.createWall(0, 350, 20, 250, WHITE) # left wall 2
-        self.createWall(780, 0, 20, 250, WHITE) # right wall
-        self.createWall(780, 350, 20, 250, WHITE) # right wall 2
-        self.createWall(20, 0, 760, 20, WHITE) # top wall
-        self.createWall(20, 580, 760, 20, WHITE) # bottom wall
+        self.createWall(0, 0, 20, 250, WHITE)  # left wall 1
+        self.createWall(0, 350, 20, 250, WHITE)  # left wall 2
+        self.createWall(780, 0, 20, 250, WHITE)  # right wall
+        self.createWall(780, 350, 20, 250, WHITE)  # right wall 2
+        self.createWall(20, 0, 760, 20, WHITE)  # top wall
+        self.createWall(20, 580, 760, 20, WHITE)  # bottom wall
+
 
 class Room2(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 250, WHITE) # left wall 1
-        self.createWall(0, 350, 20, 250, WHITE) # left wall 2
-        self.createWall(780, 0, 20, 600, WHITE) # right wall
-        self.createWall(20, 0, 760, 20, WHITE) # top wall
-        self.createWall(20, 580, 330, 20, WHITE) # bottom wall 1
-        self.createWall(450, 580, 330, 20, WHITE) # bottom wall 2
+        self.createWall(0, 0, 20, 250, WHITE)  # left wall 1
+        self.createWall(0, 350, 20, 250, WHITE)  # left wall 2
+        self.createWall(780, 0, 20, 600, WHITE)  # right wall
+        self.createWall(20, 0, 760, 20, WHITE)  # top wall
+        self.createWall(20, 580, 330, 20, WHITE)  # bottom wall 1
+        self.createWall(450, 580, 330, 20, WHITE)  # bottom wall 2
+
 
 class Room3(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 600, GREEN) # left wall
-        self.createWall(780, 0, 20, 250, GREEN) # right wall
-        self.createWall(780, 350, 20, 250, GREEN) # right wall 2
-        self.createWall(20, 0, 330, 20, GREEN) # top wall 1
-        self.createWall(450, 0, 330, 20, GREEN) # top wall 2
-        self.createWall(20, 580, 780, 20, GREEN) # bottom wall 
+        self.createWall(0, 0, 20, 600, GREEN)  # left wall
+        self.createWall(780, 0, 20, 250, GREEN)  # right wall
+        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
+        self.createWall(20, 0, 330, 20, GREEN)  # top wall 1
+        self.createWall(450, 0, 330, 20, GREEN)  # top wall 2
+        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
+
 
 class Room4(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 250, GREEN) # left wall 1
-        self.createWall(0, 350, 20, 250, GREEN) # left wall 2
-        self.createWall(780, 0, 20, 250, GREEN) # right wall 1
-        self.createWall(780, 350, 20, 250, GREEN) # right wall 2
-        self.createWall(20, 0, 760, 20, GREEN) # top wall
-        self.createWall(20, 580, 780, 20, GREEN) # bottom wall 
+        self.createWall(0, 0, 20, 250, GREEN)  # left wall 1
+        self.createWall(0, 350, 20, 250, GREEN)  # left wall 2
+        self.createWall(780, 0, 20, 250, GREEN)  # right wall 1
+        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
+        self.createWall(20, 0, 760, 20, GREEN)  # top wall
+        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
+
 
 class Room5(Room):
     def __init__(self):
         super().__init__()
 
-        self.createWall(0, 0, 20, 250, GREEN) # left wall 1
-        self.createWall(0, 350, 20, 250, GREEN) # left wall 2
-        self.createWall(780, 0, 20, 600, GREEN) # right wall
-        self.createWall(20, 0, 330, 20, GREEN) # top wall 1
-        self.createWall(450, 0, 330, 20, GREEN) # top wall 2
-        self.createWall(20, 580, 780, 20, GREEN) # bottom wall
+        self.createWall(0, 0, 20, 250, GREEN)  # left wall 1
+        self.createWall(0, 350, 20, 250, GREEN)  # left wall 2
+        self.createWall(780, 0, 20, 600, GREEN)  # right wall
+        self.createWall(20, 0, 330, 20, GREEN)  # top wall 1
+        self.createWall(450, 0, 330, 20, GREEN)  # top wall 2
+        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
 
-        self.createTreasure(375, 275, 50, 50, YELLOW) # treasure
-        
-        
+        self.createTreasure(375, 275, 50, 50, YELLOW)  # treasure
+
 
 class MazeRunner():
     def __init__(self):
@@ -249,13 +257,13 @@ class MazeRunner():
         self.movingSprites = pygame.sprite.Group()
         self.movingSprites.add(self.player)
 
-        self.rooms = [[Room0(), Room1(), Room2()],
-                      [Room3(), Room4(), Room5()]]
+        self.rooms = [[Room0(), Room1(), Room2()], [Room3(), Room4(), Room5()]]
         self.currentRoomRow = 0
         self.currentRoomCol = 0
         self.changeRoom()
 
-        self.heart = pygame.image.load(os.path.join("src\heart.png")).convert_alpha()
+        self.heart = pygame.image.load(
+            os.path.join("src/heart.png")).convert_alpha()
 
         self.clock = pygame.time.Clock()
 
@@ -278,7 +286,7 @@ class MazeRunner():
                 # escape closes the game now
                 if event.key == pygame.K_ESCAPE:
                     exit()
-            
+
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
                     self.player.changeSpeed(5, 0)
@@ -290,7 +298,8 @@ class MazeRunner():
                     self.player.changeSpeed(0, -5)
 
     def movePlayer(self):
-        self.player.move(self.currentRoom.wall_list, self.currentRoom.enemy_list)
+        self.player.move(self.currentRoom.wall_list,
+                         self.currentRoom.enemy_list)
 
         if self.player.rect.x > 795:
             self.currentRoomCol += 1
@@ -312,11 +321,11 @@ class MazeRunner():
             self.player.rect.y = 590
             self.changeRoom()
 
-        block_hit_list = pygame.sprite.spritecollide(self.player, self.currentRoom.treasure_list, False)
+        block_hit_list = pygame.sprite.spritecollide(
+            self.player, self.currentRoom.treasure_list, False)
 
         for block in block_hit_list:
             self.win()
-
 
     def win(self):
         time.sleep(1)
@@ -324,7 +333,8 @@ class MazeRunner():
         myfont = pygame.font.SysFont('Arial', 120)
         win = myfont.render('You Win!', True, RED)
         fontsize = myfont.size("You Win!")
-        self.screen.blit(win, (int(400-fontsize[0]/2),int(300-fontsize[1]/2)))
+        self.screen.blit(
+            win, (int(400 - fontsize[0] / 2), int(300 - fontsize[1] / 2)))
         pygame.display.flip()
 
         restart = False
@@ -334,7 +344,7 @@ class MazeRunner():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         restart = True
-        
+
         self.restart()
 
     def gameOver(self):
@@ -342,7 +352,8 @@ class MazeRunner():
         myfont = pygame.font.SysFont('Arial', 120)
         gameover = myfont.render('Game Over!', True, BLACK)
         fontsize = myfont.size("Game Over!")
-        self.screen.blit(gameover, (int(400-fontsize[0]/2),int(300-fontsize[1]/2)))
+        self.screen.blit(
+            gameover, (int(400 - fontsize[0] / 2), int(300 - fontsize[1] / 2)))
         pygame.display.flip()
 
         restart = False
@@ -352,7 +363,7 @@ class MazeRunner():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         restart = True
-        
+
         self.restart()
 
     def restart(self):
@@ -364,11 +375,11 @@ class MazeRunner():
         self.player.change_x = 0
         self.player.change_y = 0
 
-        self.currentRoomCol = 0 
+        self.currentRoomCol = 0
         self.currentRoomRow = 0
-        
+
         self.player.lives = 3
-        
+
         self.changeRoom()
 
     def drawRoom(self):
@@ -380,7 +391,7 @@ class MazeRunner():
 
         # live counter
         for x in range(self.player.lives):
-            self.screen.blit(self.heart, (20+25*x, 580, 20, 20))
+            self.screen.blit(self.heart, (20 + 25 * x, 580, 20, 20))
 
     def main(self):
         while True:
@@ -390,7 +401,6 @@ class MazeRunner():
 
             if self.player.lives < 1:
                 self.gameOver()
-        
 
             self.checkEvents()
             self.movePlayer()
@@ -398,6 +408,7 @@ class MazeRunner():
             self.drawRoom()
             pygame.display.flip()
             self.clock.tick(60)
+
 
 if __name__ == "__main__":
     mazeRunner = MazeRunner()
