@@ -1,7 +1,7 @@
 ## Sample pygame app
 
-controlls:
-movement: arrow keys
+controlls:\
+movement: arrow keys\
 quit: esc
 
 
