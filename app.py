@@ -1,4 +1,4 @@
-import pygame, os, time
+import pygame, os, time, random
 
 # define colors
 BLACK = (0, 0, 0)
@@ -147,12 +147,61 @@ class Treasure(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+class Neighbor(object):
+    def __init__(self) -> None:
+        super().__init__()
+        self.loc = []
+        self.blocked = False
+
+class Cardinals(object):
+    def __init__(self) -> None:
+        super().__init__()
+        self.north = Neighbor()
+        self.south = Neighbor()
+        self.east = Neighbor()
+        self.west = Neighbor()
 
 class Room(object):
-    def __init__(self):
+    def __init__(self, location) -> None:
         self.wall_list = pygame.sprite.Group()
         self.treasure_list = pygame.sprite.Group()
         self.enemy_list = pygame.sprite.Group()
+        self.neighbors = Cardinals()
+        self.pathed = False
+        self.location = location
+
+    def buildDoor(self, targetcoord, color):
+        difference = self.difference(targetcoord)
+        horizontal = difference[0]
+        vertical = difference[1]
+
+        if horizontal > 0:
+            self.createWall(780, 0, 20, 250, color)  # right wall
+            self.createWall(780, 350, 20, 250, color)  # right wall 2
+        if horizontal < 0:
+            self.createWall(0, 0, 20, 250, color)  # left wall
+            self.createWall(0, 350, 20, 250, color)  # left wall 2
+        if vertical > 0:
+            self.createWall(0, 0, 350, 20, color)  # top wall 1
+            self.createWall(450, 0, 350, 20, color)  # top wall 2
+        if vertical < 0:
+            self.createWall(0, 580, 350, 20, color)  # bottom wall 1
+            self.createWall(450, 580, 350, 20, color)  # bottom wall 2
+
+    def buildWall(self, targetcoord, color):
+        difference = self.difference(targetcoord)
+        horizontal = difference[0]
+        vertical = difference[1]
+
+        if horizontal > 0:
+            self.createWall(780, 0, 20, 600, color)  # right wall
+        if horizontal < 0:
+            self.createWall(0, 0, 20, 250, color)  # left wall
+        if vertical > 0:
+            self.createWall(0, 0, 800, 20, color)  # top wall 1
+        if vertical < 0:
+            self.createWall(0, 580, 800, 20, color)  # bottom wall 1
+        
 
     def createWall(self, x, y, width, height, color):
         wall = Wall(x, y, width, height, color)
@@ -166,82 +215,103 @@ class Room(object):
         enemy = Enemy(x_start, y_start, x_stop, y_stop, speed, color)
         self.enemy_list.add(enemy)
 
+    def offset(self, offset) -> list:
+        coordinates = [self.location[0], self.location[1]]
+        coordinates[0] += offset[0]
+        coordinates[1] += offset[1]
+        return coordinates
 
-class Room0(Room):
-    def __init__(self):
+    def difference(self, offset) -> list:
+        coordinates = []
+        coordinates.append(offset[0] - self.location[0])
+        coordinates.append(offset[1] - self.location[1])
+        return coordinates
+
+class Maze(object):
+    def __init__(self, x_lim, y_lim) -> None:
         super().__init__()
 
-        self.createWall(0, 0, 20, 600, GREEN)  # left wall
-        self.createWall(780, 0, 20, 250, GREEN)  # right wall
-        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
-        self.createWall(20, 0, 760, 20, GREEN)  # top wall
-        self.createWall(20, 580, 330, 20, GREEN)  # bottom wall 1
-        self.createWall(450, 580, 330, 20, GREEN)  # bottom wall 2
+        self.rooms = []
 
-        self.createEnemy(100, 300, 700, 300, 5, RED)
-        self.createEnemy(400, 100, 400, 500, 5, RED)
+        for i in range (y_lim):
+            self.rooms.append([])
+            for j in range (x_lim):
+                self.rooms[i].append(Room([j, i]))
+                pass
+            pass
 
-
-class Room1(Room):
-    def __init__(self):
-        super().__init__()
-
-        self.createWall(0, 0, 20, 250, WHITE)  # left wall 1
-        self.createWall(0, 350, 20, 250, WHITE)  # left wall 2
-        self.createWall(780, 0, 20, 250, WHITE)  # right wall
-        self.createWall(780, 350, 20, 250, WHITE)  # right wall 2
-        self.createWall(20, 0, 760, 20, WHITE)  # top wall
-        self.createWall(20, 580, 760, 20, WHITE)  # bottom wall
+        self.findNeighbors()
+        self.buildBorders(GREEN)
 
 
-class Room2(Room):
-    def __init__(self):
-        super().__init__()
+    def findNeighbors(self):
+        rowMax = self.rooms.__len__()
+        colMax = self.rooms[0].__len__()
+        for row in range(rowMax):
+            for col in range(colMax):
+                # check north
+                if row > 0:
+                    self.rooms[row][col].neighbors.north.loc = self.rooms[row][col].offset([0, -1])
+                else:
+                    self.rooms[row][col].neighbors.north.blocked = True
+                # check west
+                if col > 0:
+                    self.rooms[row][col].neighbors.west.loc = self.rooms[row][col].offset([-1, 0])
+                else:
+                    self.rooms[row][col].neighbors.west.blocked = True
+                # check south
+                if row < rowMax - 2:
+                    self.rooms[row][col].neighbors.south.loc = self.rooms[row][col].offset([0, 1])
+                else:
+                    self.rooms[row][col].neighbors.south.blocked = True
+                # check east
+                if col < colMax - 2:
+                    self.rooms[row][col].neighbors.east.loc = self.rooms[row][col].offset([1, 0])
+                else:
+                    self.rooms[row][col].neighbors.east.blocked = True
 
-        self.createWall(0, 0, 20, 250, WHITE)  # left wall 1
-        self.createWall(0, 350, 20, 250, WHITE)  # left wall 2
-        self.createWall(780, 0, 20, 600, WHITE)  # right wall
-        self.createWall(20, 0, 760, 20, WHITE)  # top wall
-        self.createWall(20, 580, 330, 20, WHITE)  # bottom wall 1
-        self.createWall(450, 580, 330, 20, WHITE)  # bottom wall 2
+    def buildBorders(self, color):
+        
+        # top border across the top of the maze
+        for room in self.rooms[0]:
+            room.createWall(0, 0, 800, 20, color)  # top wall
 
+        # bottom border across the bottom of the maze
+        for room in self.rooms[self.rooms.__len__() - 1]:
+            room.createWall(0, 580, 800, 20, color)  # bottom wall
 
-class Room3(Room):
-    def __init__(self):
-        super().__init__()
+        # left border on the left of the maze
+        for row in self.rooms:
+            row[0].createWall(0, 0, 20, 600, color)  # left wall
 
-        self.createWall(0, 0, 20, 600, GREEN)  # left wall
-        self.createWall(780, 0, 20, 250, GREEN)  # right wall
-        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
-        self.createWall(20, 0, 330, 20, GREEN)  # top wall 1
-        self.createWall(450, 0, 330, 20, GREEN)  # top wall 2
-        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
+        # right border on the right on the maze
+        for row in self.rooms:
+            row[row.__len__() - 1].createWall(780, 0, 20, 600, color)  # right wall
 
+    # TODO: use randomized depth-first search algoritme to place walls/doors and generate the maze
 
-class Room4(Room):
-    def __init__(self):
-        super().__init__()
+    def placeTreasure(self, color, loc):
+        treasureRow = loc[1]
+        treasureCol = loc[0]
+        print('treasure at: x ' + str(treasureCol) + " y " + str(treasureRow))
 
-        self.createWall(0, 0, 20, 250, GREEN)  # left wall 1
-        self.createWall(0, 350, 20, 250, GREEN)  # left wall 2
-        self.createWall(780, 0, 20, 250, GREEN)  # right wall 1
-        self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
-        self.createWall(20, 0, 760, 20, GREEN)  # top wall
-        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
+        self.rooms[treasureRow][treasureCol].createTreasure(375, 275, 50, 50, color)
 
+# room with enemy template
 
-class Room5(Room):
-    def __init__(self):
-        super().__init__()
+# class Room0(Room):
+#     def __init__(self):
+#         super().__init__([0, 0])
 
-        self.createWall(0, 0, 20, 250, GREEN)  # left wall 1
-        self.createWall(0, 350, 20, 250, GREEN)  # left wall 2
-        self.createWall(780, 0, 20, 600, GREEN)  # right wall
-        self.createWall(20, 0, 330, 20, GREEN)  # top wall 1
-        self.createWall(450, 0, 330, 20, GREEN)  # top wall 2
-        self.createWall(20, 580, 780, 20, GREEN)  # bottom wall
+#         self.createWall(0, 0, 20, 600, GREEN)  # left wall
+#         self.createWall(780, 0, 20, 250, GREEN)  # right wall
+#         self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
+#         self.createWall(20, 0, 760, 20, GREEN)  # top wall
+#         self.createWall(20, 580, 330, 20, GREEN)  # bottom wall 1
+#         self.createWall(450, 580, 330, 20, GREEN)  # bottom wall 2
 
-        self.createTreasure(375, 275, 50, 50, YELLOW)  # treasure
+#         self.createEnemy(100, 300, 700, 300, 5, RED)
+#         self.createEnemy(400, 100, 400, 500, 5, RED)
 
 
 class MazeRunner():
@@ -257,9 +327,16 @@ class MazeRunner():
         self.movingSprites = pygame.sprite.Group()
         self.movingSprites.add(self.player)
 
-        self.rooms = [[Room0(), Room1(), Room2()], [Room3(), Room4(), Room5()]]
-        self.currentRoomRow = 0
-        self.currentRoomCol = 0
+        self.room_limit_x = 5
+        self.room_limit_y = 5
+
+        self.maze = Maze(self.room_limit_x, self.room_limit_y)
+        self.maze.placeTreasure(YELLOW, self.pickRoom())
+
+
+        self.startroom = self.pickRoom()
+        self.currentRoomRow = self.startroom[0]
+        self.currentRoomCol = self.startroom[1]
         self.changeRoom()
 
         self.heart = pygame.image.load(
@@ -267,8 +344,18 @@ class MazeRunner():
 
         self.clock = pygame.time.Clock()
 
+
+    def pickRoom(self):
+        room_x = random.randint(0, self.room_limit_x - 1)
+        room_y = random.randint(0, self.room_limit_y - 1)
+        
+        return [room_x, room_y]
+
     def changeRoom(self):
-        self.currentRoom = self.rooms[self.currentRoomRow][self.currentRoomCol]
+        # TODO: bounds check
+
+
+        self.currentRoom = self.maze.rooms[self.currentRoomRow][self.currentRoomCol]
         self.player.start_x = self.player.rect.x
         self.player.start_y = self.player.rect.y
 
@@ -324,7 +411,7 @@ class MazeRunner():
         block_hit_list = pygame.sprite.spritecollide(
             self.player, self.currentRoom.treasure_list, False)
 
-        for block in block_hit_list:
+        if block_hit_list:
             self.win()
 
     def win(self):
@@ -372,6 +459,9 @@ class MazeRunner():
         self.player.rect.y = 50
         self.player.start_y = self.player.rect.y
 
+        self.maze = Maze(self.room_limit_x, self.room_limit_y)
+        self.maze.placeTreasure(YELLOW, self.pickRoom())
+
         self.player.change_x = 0
         self.player.change_y = 0
 
@@ -391,7 +481,17 @@ class MazeRunner():
 
         # live counter
         for x in range(self.player.lives):
-            self.screen.blit(self.heart, (20 + 25 * x, 580, 20, 20))
+            self.screen.blit(self.heart, (20 + 25 * x, 578, 20, 20))
+
+        # location display
+        locationString = 'loc: ['+ str(self.currentRoomCol) + ', ' + str(self.currentRoomRow)+ ']'
+        myfont = pygame.font.SysFont('Arial', 18, bold=True)
+        currentMapLocation = myfont.render(locationString, True, BLUE)
+        fontsize = myfont.size(locationString)
+        self.screen.blit(currentMapLocation, (int(700 - fontsize[0] / 2), int(600 - fontsize[1]) - 2))
+        pygame.display.flip()
+
+        # TODO: depth display
 
     def main(self):
         while True:
