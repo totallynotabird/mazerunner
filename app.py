@@ -341,30 +341,11 @@ class Maze(object):
         return neighbors
 
     def placeTreasure(self, color, loc):
-        treasureRow = loc[1]
-        treasureCol = loc[0]
+        treasureRow = loc.y
+        treasureCol = loc.x
         print('treasure at: x ' + str(treasureCol) + " y " + str(treasureRow))
 
         self.rooms[treasureRow][treasureCol].createTreasure(375, 275, 50, 50, color)
-
-# room with enemy template
-
-# class Room0(Room):
-#     def __init__(self):
-#         super().__init__([0, 0])
-
-#         self.createWall(0, 0, 20, 600, GREEN)  # left wall
-#         self.createWall(780, 0, 20, 250, GREEN)  # right wall
-#         self.createWall(780, 350, 20, 250, GREEN)  # right wall 2
-#         self.createWall(20, 0, 760, 20, GREEN)  # top wall
-#         self.createWall(20, 580, 330, 20, GREEN)  # bottom wall 1
-#         self.createWall(450, 580, 330, 20, GREEN)  # bottom wall 2
-
-            # horizontal enemy
-#         self.createEnemy(100, 300, 700, 300, 5, RED)
-            # vertical enemy
-#         self.createEnemy(400, 100, 400, 500, 5, RED)
-
 
 class MazeRunner():
     def __init__(self):
@@ -379,16 +360,17 @@ class MazeRunner():
         self.movingSprites = pygame.sprite.Group()
         self.movingSprites.add(self.player)
 
-        self.room_limit_x = 10
-        self.room_limit_y = 10
-
-        self.maze = Maze(self.room_limit_x, self.room_limit_y)
-        self.maze.placeTreasure(YELLOW, self.pickRoom())
-
+        self.room_limit_x = 7
+        self.room_limit_y = 7
 
         self.startroom = self.pickRoom()
-        self.currentRoomRow = self.startroom[0]
-        self.currentRoomCol = self.startroom[1]
+
+        self.maze = Maze(self.room_limit_x, self.room_limit_y)
+        
+        self.maze.placeTreasure(YELLOW, self.pickRoom())
+
+        self.currentRoomRow = self.startroom.y
+        self.currentRoomCol = self.startroom.x
         self.changeRoom()
 
         self.heart = pygame.image.load(
@@ -396,11 +378,17 @@ class MazeRunner():
 
         self.clock = pygame.time.Clock()
 
-    def pickRoom(self):
+    def pickRoom(self, checkspawn=False):
         room_x = random.randint(0, self.room_limit_x - 1)
         room_y = random.randint(0, self.room_limit_y - 1)
         
-        return [room_x, room_y]
+        if checkspawn:
+            if  room_x == self.startroom.x and room_y == self.startroom.y :
+                retry = self.pickRoom(True)
+                room_x = retry.x
+                room_y = retry.y
+
+        return Vector2(room_y, room_x)
 
     def changeRoom(self):
         # TODO: bounds check
