@@ -147,61 +147,63 @@ class Treasure(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-class Neighbor(object):
-    def __init__(self) -> None:
+class Vector2(object):
+    def __init__(self, row, col) -> None:
         super().__init__()
-        self.loc = []
-        self.blocked = False
+        self.x = col
+        self.y = row
+
+    def offset(self, offset) -> None:
+        self.x += offset.x
+        self.y += offset.y        
+
+    def difference(self, offset) -> None:
+        self.x = offset.x - self.x
+        self.y = offset.y - self.y
+
+    def toString(self) -> str:
+        return "[" + str(self.x) + ', ' + str(self.y) + "]"
 
 class Cardinals(object):
-    def __init__(self) -> None:
+    def __init__(self , value=True) -> None:
         super().__init__()
-        self.north = Neighbor()
-        self.south = Neighbor()
-        self.east = Neighbor()
-        self.west = Neighbor()
+        self.north = value
+        self.south = value
+        self.east = value
+        self.west = value
+
 
 class Room(object):
-    def __init__(self, location) -> None:
+    def __init__(self, row, col) -> None:
         self.wall_list = pygame.sprite.Group()
         self.treasure_list = pygame.sprite.Group()
         self.enemy_list = pygame.sprite.Group()
-        self.neighbors = Cardinals()
         self.pathed = False
-        self.location = location
+        self.location = Vector2(row, col)
+        self.walls = Cardinals()
 
-    def buildDoor(self, targetcoord, color):
-        difference = self.difference(targetcoord)
-        horizontal = difference[0]
-        vertical = difference[1]
-
-        if horizontal > 0:
+    def build(self, color):
+        if self.walls.east:
+            self.createWall(780, 0, 20, 600, color)  # right wall
+        else:
             self.createWall(780, 0, 20, 250, color)  # right wall
-            self.createWall(780, 350, 20, 250, color)  # right wall 2
-        if horizontal < 0:
+            self.createWall(780, 350, 20, 250, color)  # right wall 2        
+        if self.walls.west:
+            self.createWall(0, 0, 20, 600, color)  # left wall
+        else:
             self.createWall(0, 0, 20, 250, color)  # left wall
             self.createWall(0, 350, 20, 250, color)  # left wall 2
-        if vertical > 0:
+        if self.walls.north:
+            self.createWall(0, 0, 800, 20, color)  # top wall
+        else:
             self.createWall(0, 0, 350, 20, color)  # top wall 1
             self.createWall(450, 0, 350, 20, color)  # top wall 2
-        if vertical < 0:
+        if self.walls.south:
+            self.createWall(0, 580, 800, 20, color)  # bottom wall
+        else:
             self.createWall(0, 580, 350, 20, color)  # bottom wall 1
             self.createWall(450, 580, 350, 20, color)  # bottom wall 2
-
-    def buildWall(self, targetcoord, color):
-        difference = self.difference(targetcoord)
-        horizontal = difference[0]
-        vertical = difference[1]
-
-        if horizontal > 0:
-            self.createWall(780, 0, 20, 600, color)  # right wall
-        if horizontal < 0:
-            self.createWall(0, 0, 20, 250, color)  # left wall
-        if vertical > 0:
-            self.createWall(0, 0, 800, 20, color)  # top wall 1
-        if vertical < 0:
-            self.createWall(0, 580, 800, 20, color)  # bottom wall 1
-        
+     
 
     def createWall(self, x, y, width, height, color):
         wall = Wall(x, y, width, height, color)
@@ -215,60 +217,35 @@ class Room(object):
         enemy = Enemy(x_start, y_start, x_stop, y_stop, speed, color)
         self.enemy_list.add(enemy)
 
-    def offset(self, offset) -> list:
-        coordinates = [self.location[0], self.location[1]]
-        coordinates[0] += offset[0]
-        coordinates[1] += offset[1]
-        return coordinates
-
-    def difference(self, offset) -> list:
-        coordinates = []
-        coordinates.append(offset[0] - self.location[0])
-        coordinates.append(offset[1] - self.location[1])
-        return coordinates
-
 class Maze(object):
     def __init__(self, x_lim, y_lim) -> None:
         super().__init__()
-
+        self.roomCount = x_lim * y_lim
         self.rooms = []
 
         for i in range (y_lim):
             self.rooms.append([])
             for j in range (x_lim):
-                self.rooms[i].append(Room([j, i]))
+                self.rooms[i].append(Room(j, i))
+                
                 pass
             pass
 
-        self.findNeighbors()
-        self.buildBorders(GREEN)
+        
+        
+        # self.buildBorders(GREEN)
+        self.carvePaths(0, 0)
+        self.buildMaze(GREEN)
+        
+        
 
+        
+    def buildMaze(self, color):
+        for row in self.rooms:
+            for room in row:
+                room.build(color)
 
-    def findNeighbors(self):
-        rowMax = self.rooms.__len__()
-        colMax = self.rooms[0].__len__()
-        for row in range(rowMax):
-            for col in range(colMax):
-                # check north
-                if row > 0:
-                    self.rooms[row][col].neighbors.north.loc = self.rooms[row][col].offset([0, -1])
-                else:
-                    self.rooms[row][col].neighbors.north.blocked = True
-                # check west
-                if col > 0:
-                    self.rooms[row][col].neighbors.west.loc = self.rooms[row][col].offset([-1, 0])
-                else:
-                    self.rooms[row][col].neighbors.west.blocked = True
-                # check south
-                if row < rowMax - 2:
-                    self.rooms[row][col].neighbors.south.loc = self.rooms[row][col].offset([0, 1])
-                else:
-                    self.rooms[row][col].neighbors.south.blocked = True
-                # check east
-                if col < colMax - 2:
-                    self.rooms[row][col].neighbors.east.loc = self.rooms[row][col].offset([1, 0])
-                else:
-                    self.rooms[row][col].neighbors.east.blocked = True
+        pass
 
     def buildBorders(self, color):
         
@@ -288,7 +265,80 @@ class Maze(object):
         for row in self.rooms:
             row[row.__len__() - 1].createWall(780, 0, 20, 600, color)  # right wall
 
-    # TODO: use randomized depth-first search algoritme to place walls/doors and generate the maze
+    def carvePaths(self, row, col):
+        roomsVisited = 0
+        pathStack = []
+
+        currentRoom = Vector2(row, col)
+        
+        while roomsVisited < self.roomCount:
+
+            self.rooms[currentRoom.y][currentRoom.x].pathed = True
+            roomsVisited += 1
+
+            # gather neighbors of this room, ignoring borders and pathed rooms
+            neighbors = self.findNeighbors(currentRoom.y, currentRoom.x)
+            # then pick one 
+            if neighbors:
+                pathStack.append(currentRoom)
+                nextRoom = random.choice(neighbors)                     
+                # print(currentRoom.toString() + " -> "+ nextRoom.toString())
+            
+                direction = Vector2(currentRoom.y, currentRoom.x)
+                direction.difference(nextRoom)
+                # print(direction.toString())
+                self.placeDoor(direction, currentRoom)
+
+                currentRoom = nextRoom
+            else:
+                if roomsVisited == self.roomCount:
+                    break
+                # print("dead end" + pathStack[-1].toString())
+                
+                pathStack.pop()
+                # print(pathStack[-1].toString())
+                currentRoom = pathStack[-1]
+                # print(str(roomsVisited) + 'rooms visited')
+                roomsVisited -= 1
+                
+        
+    
+    def placeDoor(self, direction, currentRoom):
+        if direction.y < 0:
+            self.rooms[currentRoom.y][currentRoom.x].walls.north = False
+            self.rooms[currentRoom.y - 1][currentRoom.x].walls.south = False
+            
+        if direction.y > 0:
+            self.rooms[currentRoom.y][currentRoom.x].walls.south = False
+            self.rooms[currentRoom.y + 1][currentRoom.x].walls.north = False
+            
+        if direction.x > 0:
+            self.rooms[currentRoom.y][currentRoom.x].walls.east = False
+            self.rooms[currentRoom.y][currentRoom.x + 1].walls.west = False
+            
+        if direction.x < 0:
+            self.rooms[currentRoom.y][currentRoom.x].walls.west = False
+            self.rooms[currentRoom.y][currentRoom.x - 1].walls.east = False
+            
+        
+
+    def findNeighbors(self, row, col) -> list:
+        neighbors = []
+        # gether neighbors of this room, ignoring borders
+        if row > 0:
+            if not self.rooms[row-1][col].pathed:
+                neighbors.append(Vector2(row - 1, col))
+        if row < self.rooms.__len__() - 1:
+            if not self.rooms[row+1][col].pathed:
+                neighbors.append(Vector2(row + 1, col))
+        if col > 0:
+            if not self.rooms[row][col-1].pathed:
+                neighbors.append(Vector2(row, col - 1))
+        if col < self.rooms.__len__() - 1:
+            if not self.rooms[row][col+1].pathed:
+                neighbors.append(Vector2(row, col + 1))
+
+        return neighbors
 
     def placeTreasure(self, color, loc):
         treasureRow = loc[1]
@@ -310,7 +360,9 @@ class Maze(object):
 #         self.createWall(20, 580, 330, 20, GREEN)  # bottom wall 1
 #         self.createWall(450, 580, 330, 20, GREEN)  # bottom wall 2
 
+            # horizontal enemy
 #         self.createEnemy(100, 300, 700, 300, 5, RED)
+            # vertical enemy
 #         self.createEnemy(400, 100, 400, 500, 5, RED)
 
 
@@ -327,8 +379,8 @@ class MazeRunner():
         self.movingSprites = pygame.sprite.Group()
         self.movingSprites.add(self.player)
 
-        self.room_limit_x = 5
-        self.room_limit_y = 5
+        self.room_limit_x = 10
+        self.room_limit_y = 10
 
         self.maze = Maze(self.room_limit_x, self.room_limit_y)
         self.maze.placeTreasure(YELLOW, self.pickRoom())
@@ -343,7 +395,6 @@ class MazeRunner():
             os.path.join("src/heart.png")).convert_alpha()
 
         self.clock = pygame.time.Clock()
-
 
     def pickRoom(self):
         room_x = random.randint(0, self.room_limit_x - 1)
