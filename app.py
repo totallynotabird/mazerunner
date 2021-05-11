@@ -1,4 +1,4 @@
-import pygame, os, time, random
+import pygame, os, time, random, bisect
 
 # define colors
 BLACK = (0, 0, 0)
@@ -172,6 +172,21 @@ class Cardinals(object):
         self.east = value
         self.west = value
 
+class WeightedList(object):
+    def __init__(self, choises) -> None:
+        super().__init__()
+        self.values, self.weights = zip(*choises)
+        self.total = 0
+        self.cumulativeWeights = []
+        for x in self.weights:
+            self.total += x
+            self.cumulativeWeights.append(self.total)
+    
+    def draw(self):
+        pick = random.random() * self.total
+        index = bisect.bisect(self.cumulativeWeights, pick)
+        return self.values[index]
+
 
 class Room(object):
     def __init__(self, row, col) -> None:
@@ -179,6 +194,7 @@ class Room(object):
         self.treasure_list = pygame.sprite.Group()
         self.enemy_list = pygame.sprite.Group()
         self.pathed = False
+        self.save = False
         self.location = Vector2(row, col)
         self.walls = Cardinals()
 
@@ -227,43 +243,44 @@ class Maze(object):
             self.rooms.append([])
             for j in range (x_lim):
                 self.rooms[i].append(Room(j, i))
-                
-                pass
-            pass
 
-        
-        
-        # self.buildBorders(GREEN)
         self.carvePaths(0, 0)
         self.buildMaze(GREEN)
-        
-        
 
+    def populate(self, mult):
+        enemyCount = WeightedList([[0, 100], [1, 60 + 10 * mult], [2, 20 * mult], [3, 10 * mult],[4, 7 * mult]])        
+        
+        for row in range(len(self.rooms)):
+            for room in range(len(self.rooms[row])):
+                    currentRoom = self.rooms[row][room]
+                    if currentRoom.save == False:
+                        count = enemyCount.draw()
+                        if count:
+                            for enemy in range(count):
+                                # decide direction of the enemy
+                                direction = random.randint(1, 4)
+
+                                # horizontal
+                                # 80% width, same height
+                                if direction == 1: # start left
+                                    height = random.randint(60, 540)
+                                    currentRoom.createEnemy(80, height, 720, height, 5, RED)
+                                if direction == 2: # start right
+                                    height = random.randint(60,540)
+                                    currentRoom.createEnemy(720, height, 80, height, 5, RED)
+                                # vertical
+                                # 80% height, same width
+                                if direction == 3: #start top
+                                    width = random.randint(80, 720)
+                                    currentRoom.createEnemy(width, 60, width, 540, 5, RED)
+                                if direction == 4: # start bottom
+                                    width = random.randint(80, 720)
+                                    currentRoom.createEnemy(width, 540, width, 60, 5, RED)
         
     def buildMaze(self, color):
         for row in self.rooms:
             for room in row:
                 room.build(color)
-
-        pass
-
-    def buildBorders(self, color):
-        
-        # top border across the top of the maze
-        for room in self.rooms[0]:
-            room.createWall(0, 0, 800, 20, color)  # top wall
-
-        # bottom border across the bottom of the maze
-        for room in self.rooms[self.rooms.__len__() - 1]:
-            room.createWall(0, 580, 800, 20, color)  # bottom wall
-
-        # left border on the left of the maze
-        for row in self.rooms:
-            row[0].createWall(0, 0, 20, 600, color)  # left wall
-
-        # right border on the right on the maze
-        for row in self.rooms:
-            row[row.__len__() - 1].createWall(780, 0, 20, 600, color)  # right wall
 
     def carvePaths(self, row, col):
         roomsVisited = 0
@@ -301,8 +318,7 @@ class Maze(object):
                 # print(str(roomsVisited) + 'rooms visited')
                 roomsVisited -= 1
                 
-        
-    
+
     def placeDoor(self, direction, currentRoom):
         if direction.y < 0:
             self.rooms[currentRoom.y][currentRoom.x].walls.north = False
@@ -321,7 +337,6 @@ class Maze(object):
             self.rooms[currentRoom.y][currentRoom.x - 1].walls.east = False
             
         
-
     def findNeighbors(self, row, col) -> list:
         neighbors = []
         # gether neighbors of this room, ignoring borders
@@ -340,10 +355,11 @@ class Maze(object):
 
         return neighbors
 
+
     def placeTreasure(self, color, loc):
         treasureRow = loc.y
         treasureCol = loc.x
-        print('treasure at: x ' + str(treasureCol) + " y " + str(treasureRow))
+        # print('treasure at: x ' + str(treasureCol) + " y " + str(treasureRow))
 
         self.rooms[treasureRow][treasureCol].createTreasure(375, 275, 50, 50, color)
 
@@ -356,18 +372,24 @@ class MazeRunner():
         self.screen.fill(BLACK)
         pygame.display.flip()
 
+        self.transtionFont = pygame.font.SysFont('Arial', 120)
+        self.UIFont = pygame.font.SysFont('Arial', 18, bold=True)
+
         self.player = Player(50, 50)
         self.movingSprites = pygame.sprite.Group()
         self.movingSprites.add(self.player)
 
-        self.room_limit_x = 7
-        self.room_limit_y = 7
+        self.depth = 1
 
-        self.startroom = self.pickRoom()
-
+        self.room_limit_x = 5 
+        self.room_limit_y = 5 
+      
         self.maze = Maze(self.room_limit_x, self.room_limit_y)
-        
-        self.maze.placeTreasure(YELLOW, self.pickRoom())
+
+        self.startroom = self.pickSaveRoom()        
+        self.maze.placeTreasure(YELLOW, self.pickSaveRoom(True))
+
+        self.maze.populate(5)
 
         self.currentRoomRow = self.startroom.y
         self.currentRoomCol = self.startroom.x
@@ -377,6 +399,13 @@ class MazeRunner():
             os.path.join("src/heart.png")).convert_alpha()
 
         self.clock = pygame.time.Clock()
+
+    def pickSaveRoom(self, checkspawn=False):
+        room = self.pickRoom(checkspawn)
+
+        self.maze.rooms[room.y][room.x].save = True
+
+        return room
 
     def pickRoom(self, checkspawn=False):
         room_x = random.randint(0, self.room_limit_x - 1)
@@ -391,9 +420,6 @@ class MazeRunner():
         return Vector2(room_y, room_x)
 
     def changeRoom(self):
-        # TODO: bounds check
-
-
         self.currentRoom = self.maze.rooms[self.currentRoomRow][self.currentRoomCol]
         self.player.start_x = self.player.rect.x
         self.player.start_y = self.player.rect.y
@@ -451,16 +477,54 @@ class MazeRunner():
             self.player, self.currentRoom.treasure_list, False)
 
         if block_hit_list:
-            self.win()
+            if self.depth < 5:
+                self.dive()
+            else:
+                self.win()
+
+    def dive(self):
+        time.sleep(1)
+        self.screen.fill(BLACK)
+
+        mainString = self. transtionFont.render('You Dive Deeper', True, WHITE)
+        fontsize = self.transtionFont.size('You Dive Deeper')
+        subscriptString = "Press Space or Enter to Continue !!"
+        subscript = self.UIFont.render(subscriptString , True, WHITE)
+        subscriptSize = self.UIFont.size(subscriptString)
+
+        self.screen.blit(
+            mainString, (int(400 - fontsize[0] / 2), int(300 - fontsize[1] / 2)))
+        self.screen.blit(
+            subscript, (int(400 - subscriptSize[0]/ 2), int(400 - subscriptSize[1]/ 2))
+        )
+        pygame.display.flip()
+
+        restart = False
+
+        while not restart:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                        restart = True
+
+        self.restart(True)
 
     def win(self):
         time.sleep(1)
         self.screen.fill(YELLOW)
-        myfont = pygame.font.SysFont('Arial', 120)
-        win = myfont.render('You Win!', True, RED)
-        fontsize = myfont.size("You Win!")
+        
+        win = self.transtionFont.render('You Win!', True, RED)
+        fontsize = self.transtionFont.size("You Win!")
+        subscriptString = "Press Space or Enter to restart !!"
+        subscript = self.UIFont.render(subscriptString , True, RED)
+        subscriptSize = self.UIFont.size(subscriptString)
+
+
         self.screen.blit(
             win, (int(400 - fontsize[0] / 2), int(300 - fontsize[1] / 2)))
+        self.screen.blit(
+            subscript, (int(400 - subscriptSize[0]/ 2), int(400 - subscriptSize[1]/ 2))
+        )
         pygame.display.flip()
 
         restart = False
@@ -475,11 +539,17 @@ class MazeRunner():
 
     def gameOver(self):
         self.screen.fill(RED)
-        myfont = pygame.font.SysFont('Arial', 120)
-        gameover = myfont.render('Game Over!', True, BLACK)
-        fontsize = myfont.size("Game Over!")
+        gameover = self.transtionFont.render('Game Over!', True, BLACK)
+        fontsize = self.transtionFont.size("Game Over!")
         self.screen.blit(
             gameover, (int(400 - fontsize[0] / 2), int(300 - fontsize[1] / 2)))
+        subscriptString = "Press Space or Enter to restart !!"
+        subscript = self.UIFont.render(subscriptString , True, BLACK)
+        subscriptSize = self.UIFont.size(subscriptString)
+        self.screen.blit(
+            subscript, (int(400 - subscriptSize[0]/ 2), int(400 - subscriptSize[1]/ 2))
+        )
+
         pygame.display.flip()
 
         restart = False
@@ -492,22 +562,33 @@ class MazeRunner():
 
         self.restart()
 
-    def restart(self):
+    def restart(self, dive=False):
         self.player.rect.x = 50
         self.player.start_x = self.player.rect.x
         self.player.rect.y = 50
         self.player.start_y = self.player.rect.y
 
+        if dive == False:
+            self.depth = 1
+            self.player.lives = 3
+        else:
+            self.depth += 1
+
+        self.room_limit_x = 4 + self.depth
+        self.room_limit_y = 4 + self.depth
+
         self.maze = Maze(self.room_limit_x, self.room_limit_y)
-        self.maze.placeTreasure(YELLOW, self.pickRoom())
+
+        self.startroom = self.pickSaveRoom()
+        self.maze.placeTreasure(YELLOW, self.pickSaveRoom(True))
+
+        self.maze.populate(5 * self.depth)
 
         self.player.change_x = 0
         self.player.change_y = 0
 
-        self.currentRoomCol = 0
-        self.currentRoomRow = 0
-
-        self.player.lives = 3
+        self.currentRoomCol = self.startroom.y
+        self.currentRoomRow = self.startroom.x
 
         self.changeRoom()
 
@@ -524,13 +605,20 @@ class MazeRunner():
 
         # location display
         locationString = 'loc: ['+ str(self.currentRoomCol) + ', ' + str(self.currentRoomRow)+ ']'
-        myfont = pygame.font.SysFont('Arial', 18, bold=True)
-        currentMapLocation = myfont.render(locationString, True, BLUE)
-        fontsize = myfont.size(locationString)
-        self.screen.blit(currentMapLocation, (int(700 - fontsize[0] / 2), int(600 - fontsize[1]) - 2))
+        
+        currentMapLocation = self.UIFont.render(locationString, True, BLUE)
+        locFontsize = self.UIFont.size(locationString)
+        self.screen.blit(currentMapLocation, (int(700 - locFontsize[0] / 2), int(600 - locFontsize[1]) - 2))
+        
+
+        # depth display
+        depthString = 'Depth:  ' +  str(self.depth)
+
+        depthUIelement = self.UIFont.render(depthString, True, BLUE)
+        depthfontsize = self.UIFont.size(depthString)
+        self.screen.blit(depthUIelement, (int(0 + depthfontsize[0] / 2), 0))
         pygame.display.flip()
 
-        # TODO: depth display
 
     def main(self):
         while True:
